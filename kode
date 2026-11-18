@@ -1,0 +1,95 @@
+/*
+  PROYEK IoT: Sistem Monitoring Gerak & Intensitas Cahaya Berbasis ESP32
+  Mata Kuliah : Internet of Things
+  Institusi   : Universitas 'Aisyiyah Yogyakarta (UNISA)
+  Deskripsi   : Program ini membaca status gerakan menggunakan sensor PIR
+                dan tingkat cahaya menggunakan sensor LDR, serta menghubungkan 
+                ESP32 ke jaringan WiFi lokal.
+*/
+
+#include <WiFi.h>
+
+// --- KONFIGURASI WIFI ---
+const char* ssid     = "LabIoTUNISA";    // Nama SSID WiFi Anda
+const char* password = "12345678";       // Password WiFi Anda
+
+// --- DEFINISI PIN SENSOR ---
+// 1. Sensor Gerak PIR
+#define PIR_PIN 5   // Pin OUT sensor PIR dihubungkan ke GPIO 5
+
+// 2. Sensor Cahaya LDR (Menggunakan pin Analog ADC1 ESP32)
+#define LDR_PIN 34  
+
+void setup() {
+  // Memulai komunikasi Serial dengan baudrate 115200
+  Serial.begin(115200);
+  delay(1000);
+
+  // Konfigurasi Pin Sensor PIR sebagai Input
+  pinMode(PIR_PIN, INPUT);
+
+  // --- KONEKSI KE JARINGAN WIFI ---
+  Serial.println();
+  Serial.print("Menghubungkan ke WiFi: ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  // Menunggu hingga ESP32 terhubung ke WiFi
+  int timeout = 0;
+  while (WiFi.status() != WL_CONNECTED && timeout < 20) {
+    delay(500);
+    Serial.print(".");
+    timeout++;
+  }
+
+  Serial.println("");
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Berhasil Terhubung ke WiFi!");
+    Serial.print("Alamat IP ESP32: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("Gagal Terhubung ke WiFi. Lanjutkan mode offline / cek kembali kredensial.");
+  }
+
+  Serial.println("Sistem IoT: Sensor Cahaya & PIR Siap Berjalan!");
+  Serial.println("-----------------------------------------------------");
+}
+
+void loop() {
+  // --- 1. PEMBACAAN SENSOR GERAK PIR ---
+  // Sensor PIR mendeteksi gerakan (HIGH jika ada gerakan, LOW jika tidak ada)
+  int pirState = digitalRead(PIR_PIN);
+
+  // --- 2. PEMBACAAN SENSOR CAHAYA (LDR) ---
+  int ldrValue = analogRead(LDR_PIN); // Membaca nilai analog (0 - 4095 pada ADC 12-bit ESP32)
+
+  // --- 3. MENAMPILKAN HASIL KE SERIAL MONITOR ---
+  Serial.print("Status Gerakan (PIR): ");
+  if (pirState == HIGH) {
+    Serial.print("Ada Gerakan Terdeteksi!  |  ");
+  } else {
+    Serial.print("Aman / Tidak Ada Gerakan |  ");
+  }
+
+  Serial.print("Cahaya (LDR): ");
+  Serial.print(ldrValue);
+  Serial.print(" | Status: ");
+
+  // Logika Sederhana Berdasarkan Pembacaan Sensor LDR
+  if (ldrValue < 800) {
+    Serial.println("Ruangan Gelap / Redup");
+  } else {
+    Serial.println("Ruangan Terang");
+  }
+
+  // Logika tambahan jika ada gerakan di ruangan gelap
+  if (pirState == HIGH && ldrValue < 800) {
+    Serial.println("-> AKSI: Gerakan terdeteksi di ruangan gelap, menyalakan lampu!");
+  }
+
+  Serial.println("-----------------------------------------------------");
+  
+  // Jeda pembacaan setiap 2 detik
+  delay(2000); 
+}
